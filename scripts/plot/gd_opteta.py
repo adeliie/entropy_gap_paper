@@ -1,56 +1,97 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
 
 from package import DATA_FILE_OPTETA
 from package import plot_functions as pf
+from package.plot_functions import update_style
 
-pf.set_font_sizes(plt)
+OUT_FILE = "plot/optimal_eta_gd.pdf"
 
-try:
-    data = np.load(DATA_FILE_OPTETA)
-except FileNotFoundError:
-    print(f"Fichier '{DATA_FILE_OPTETA}' introuvable.")
-    exit()
 
-all_ds = data["all_ds"]
+def load_data():
+    with np.load(DATA_FILE_OPTETA) as loaded:
+        return {key: loaded[key] for key in loaded.files}
 
-fig = pf.make_figure(rel_width=0.9, ratio=1.9)
-ax = fig.add_subplot(111)
 
-colors = cm.viridis(np.linspace(0, 0.9, len(all_ds)))
+def postprocess(data):
+    processed = dict(data)
+    curves = []
 
-for idx, d in enumerate(all_ds):
-    try:
-        etas_d = data[f"d_{d}_etas"]
+    for d in data["all_ds"]:
+        try:
+            etas = data[f"d_{d}_etas"]
+            errors = data[f"d_{d}_errors_gf"]
+        except KeyError:
+            print(f"Données manquantes pour d={d}")
+            continue
+
         exponent = int(np.log10(d)) if d in [10**i for i in range(1, 10)] else None
-        label_d = rf" $d=10^{{{exponent}}}$" if exponent else rf"$d={d:,}$"
-        erreurs_d_gf = data[f"d_{d}_errors_gf"]
+        label = rf" $d=10^{{{exponent}}}$" if exponent else rf"$d={d:,}$"
+        curves.append(
+            {
+                "d": d,
+                "normalized_etas": etas / (np.log(d) ** 2),
+                "errors": errors,
+                "label": label,
+            }
+        )
 
-        x_universel = etas_d / (np.log(d) ** 2)
+    processed["curves"] = curves
+    return processed
 
+
+def settings(plt):
+    update_style(
+        plt,
+        nrows=1,
+        ncols=1,
+        rel_width=0.5,
+    )
+
+
+def make_figure(fig, data):
+    ax = pf.make_subplots_on_figure(fig, nrows=1, ncols=1)
+    curves = data["curves"]
+    colors = cm.viridis(np.linspace(0, 0.9, len(curves)))
+
+    for curve, color in zip(curves, colors):
         ax.plot(
-            x_universel,
-            erreurs_d_gf,
+            curve["normalized_etas"],
+            curve["errors"],
             linestyle="-",
             linewidth=2,
             alpha=0.8,
-            color=colors[idx],
-            label=label_d,
+            color=color,
+            label=curve["label"],
         )
+    ax.set_title("Grid search")
 
-    except KeyError:
-        print(f"Données manquantes pour d={d}")
+    ax.set_ylim([1e-2, 1e0])
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.legend(loc="best", frameon=False)
+    ax.set_xlabel(r" $\eta / \log d^2$")
+    ax.set_ylabel("Relative error")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
 
-ax.set_xscale("log")
-ax.set_yscale("log")
-ax.legend(loc="best", frameon=False)
-ax.set_xlabel(r" $\eta / \log d^2$")
-ax.set_ylabel("relative error")
+    fig.tight_layout(pad=0.2)
+    return fig
 
-ax.spines["top"].set_visible(False)
-ax.spines["right"].set_visible(False)
 
-plt.tight_layout()
-plt.savefig("plot/optimal_eta_gd.pdf", bbox_inches="tight")
-plt.show()
+if __name__ == "__main__":
+    settings(plt)
+    fig = plt.figure()
+    try:
+        data = postprocess(load_data())
+    except FileNotFoundError:
+        print(f"Fichier '{DATA_FILE_OPTETA}' introuvable.")
+        raise SystemExit(1)
+    make_figure(fig, data)
+
+    os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
+    fig.savefig(OUT_FILE, bbox_inches="tight")
+    plt.show()
