@@ -157,3 +157,27 @@ def update_style(
             dpi=dpi,
         )
     )
+
+
+def nice_logspace(start, stop, density, base=10):
+    """Returns a log-spaced grid between base**start and base**end
+
+    Increasing the density will repeat previously hit values
+
+    Plays nicely with ``merge_grids`` to merge a sparse and a dense grid
+    ``merge_grids(nice_logspace(-4, 3, density=1), nice_logspace(-2, 0, density=2)``
+
+    Start, end and density are assumed to be integers
+    Density = 1 will return (end - start) points
+    Increasing density by 1 doubles the number of points
+    """
+    if density < 1 or not np.allclose(int(density), density):
+        raise ValueError(f"Density needs to be an integer >= 1, got {density}.")
+    if not np.allclose(int(start), start) or not np.allclose(int(stop), stop):
+        raise ValueError(f"Start and end need to be integers, got {start, stop}.")
+    if not (stop > start):
+        raise ValueError(f"Start needs to be smaller than stop, got {start, stop}.")
+    assert stop > start
+    return np.logspace(
+        start, stop, base=base, num=(stop - start) * (2 ** (density - 1)) + 1
+    )
