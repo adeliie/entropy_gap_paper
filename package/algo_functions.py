@@ -3,7 +3,7 @@ import os
 import numpy as np
 import torch
 import torch.nn.functional as F
-
+from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -31,6 +31,13 @@ def loss_gap_per_col(pi, W):
     )
 
 
+@torch.jit.script
+def _gd_matrix_step(W, pi_row, eta_pi_col):
+    """Apply one matrix GD step with JIT-fused pointwise operations."""
+    P = torch.softmax(W, dim=-1)
+    return W + eta_pi_col * (pi_row - P)
+
+
 def gd_matrix_per_col(T, d, eta=0, N_checkpoints=100):
     """Run the matrix-form gradient descent and return the recorded relative errors over time."""
     compute_dtype = torch.float32
@@ -39,14 +46,10 @@ def gd_matrix_per_col(T, d, eta=0, N_checkpoints=100):
     if eta == 0:
         eta = (1.0 / (pi[0] ** 2)).item()
 
-    pi_col = pi.unsqueeze(1)
     pi_row = pi.unsqueeze(0)
-    update_const_matrix = eta * (pi_col @ pi_row)
-    eta_pi_row = eta * pi_row
+    eta_pi_col = (eta * pi).unsqueeze(1)
 
     W_T = torch.full((d, d), -np.log(d), dtype=compute_dtype, device=device)
-    U_T = update_const_matrix.t().contiguous()
-    eta_pi_col = eta_pi_row.t().contiguous()
     pi_row_loss = pi.unsqueeze(0).contiguous()
     log_pi_row_loss = torch.log(pi_row_loss + 1e-30)
 
@@ -63,10 +66,8 @@ def gd_matrix_per_col(T, d, eta=0, N_checkpoints=100):
     errors = [np.ones(d)]
 
     with torch.no_grad():
-        for t in range(1, T + 1):
-            P_T = F.softmax(W_T, dim=-1)
-            W_T.add_(U_T)
-            W_T.addcmul_(eta_pi_col, P_T, value=-1.0)
+        for t in tqdm(range(1, T + 1), total=T + 1, leave=False):
+            W_T = _gd_matrix_step(W_T, pi_row, eta_pi_col)
 
             if t in checkpoint_set:
                 curr_err_per_col = loss_gap_per_col_T(W_T)
@@ -166,7 +167,9 @@ def load_freqs(vocab_size):
     """Load token and conditional frequency arrays for the real-data experiments."""
     output_dir = "freqs"
     freqs = np.load(os.path.join(output_dir, f"token_freq_total_{vocab_size}.npy"))
-    cond_freqs = np.load(os.path.join(output_dir, f"bigram_freq_total_{vocab_size}.npy"))
+    cond_freqs = np.load(
+        os.path.join(output_dir, f"bigram_freq_total_{vocab_size}.npy")
+    )
     return freqs, cond_freqs
 
 
@@ -234,7 +237,7 @@ def sign_descent(T, d, eta, normalized=False):
     safe_init_err = max(init_err, 1e-30)
 
     with torch.no_grad():
-        for _ in range(T):
+        for _ in tqdm(range(T), total=T, leave=False):
             P = F.softmax(W, dim=0)
             W += eta * torch.sign(pi - P)
 

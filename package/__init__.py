@@ -1,0 +1,8 @@
+DATA_FILE_SIGN = "data/data_sgd.npz"
+DATA_FILE_GD_MATRIX = "data/data_gd_matrix.npz"
+DATA_FILE_OPTETA = "data/data_gd_opteta.npz"
+DATA_FILE_SIGN_BIG = "data/data_sgd_big.npz"
+DATA_FILE_INTRO = "data/data_intro.npz"
+DATA_FILE_REAL_SIGN = "data/sign_real_data.npz"
+DATA_FILE_REAL = "data/real_data.npz"
+DATA_FILE_GF = "data/data_gf_eta=logd^2.npz"
