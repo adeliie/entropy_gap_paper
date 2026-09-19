@@ -246,3 +246,64 @@ def sign_descent(T, d, eta, normalized=False):
     if normalized:
         return final_err / safe_init_err
     return final_err
+
+
+def gradient_real_data(vocab_size, T, eta=0, N_checkpoints=100):
+    freqs, cond_freqs = load_freqs(vocab_size)
+    d = vocab_size
+    compute_dtype = torch.float32
+
+    pi = torch.tensor(freqs, dtype=compute_dtype, device=device)
+    pi /= pi.sum()
+
+    pi_cond = torch.tensor(cond_freqs, dtype=compute_dtype, device=device).T
+    col_sums = pi_cond.sum(dim=0, keepdim=True)
+    pi_cond /= torch.clamp(col_sums, min=1e-30)
+
+    target_T = pi_cond.T.contiguous()
+    log_target_T = torch.log(target_T + 1e-30)
+
+    # Joint probability p(i, j) = p(j) p(i | j).
+    if eta == 0:
+        max_joint = torch.max(pi[:, None] * target_T)
+        eta = (1.0 / max_joint).item()
+
+    eta_marginal = (eta * pi).unsqueeze(1)
+
+    W_T = torch.full(
+        (d, d),
+        -np.log(d),
+        dtype=compute_dtype,
+        device=device,
+    )
+
+    def loss_per_context(W):
+        log_P = F.log_softmax(W, dim=-1)
+        return torch.sum(
+            target_T * (log_target_T - log_P),
+            dim=-1,
+        )
+
+    init_error = loss_per_context(W_T)
+
+    checkpoints = np.unique(np.round(np.geomspace(1, T, N_checkpoints)).astype(int))
+    checkpoint_set = set(checkpoints.tolist())
+
+    saved_t = [0]
+    errors = [np.ones(d)]
+
+    with torch.no_grad():
+        for t in tqdm(range(1, T + 1), total=T, leave=False):
+            P_T = F.softmax(W_T, dim=-1)
+
+            # W[:, j] -= eta * p(j) * (P[:, j] - target[:, j])
+            W_T += eta_marginal * (target_T - P_T)
+
+            if t in checkpoint_set:
+                current_error = loss_per_context(W_T)
+                relative_error = current_error / init_error
+
+                saved_t.append(t)
+                errors.append(relative_error.cpu().numpy())
+
+    return np.asarray(saved_t, dtype=np.float64), np.asarray(errors)
