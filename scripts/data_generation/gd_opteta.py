@@ -19,7 +19,7 @@ for d in tqdm(ds, total=len(ds), leave=True):
     pi = pi.cpu().numpy()
 
     eta_min = max(0.01, (np.log(d) ** 2) / 100.0)
-    eta_max = min(1000.0, (np.log(d) ** 2) * 10.0)
+    eta_max = min(1000.0, (np.log(d) ** 2) * 100.0)
 
     etas = np.logspace(np.log10(eta_min), np.log10(eta_max), 50)
 

@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -101,26 +102,45 @@ def make_figure(fig, data):
         lines.append(line)
         labels.append(rf"$w_{{{k+1}}}$")
 
+    target_handle = mlines.Line2D(
+        [],
+        [],
+        color="gray",
+        linestyle="--",
+        lw=2.5,
+        label=r"$\log\pi_k+\log Z(t)$",
+    )
+
     ax1.set_title("Weights and targets")
-    ax1.set_ylim([-15, 0])
+    ax1.set_ylim([-17, -3])
+    ax1.set_yticks([-15, -10, -5])
     ax1.set_xlim(0, 200)
     ax1.set_xlabel("t")
     ax1.set_ylabel(r"$w_k(t)$ and target")
-    ax1.legend(
+    weight_legend = ax1.legend(
         lines,
         labels,
-        loc="upper center",
+        loc="upper right",
         ncol=2,
-        # borderaxespad=-0.5,
+        borderaxespad=0.0,
         columnspacing=0.8,
         handlelength=1.5,
         handletextpad=0.4,
         frameon=False,
         labelspacing=0.0,
     )
+    ax1.add_artist(weight_legend)
+    ax1.legend(
+        handles=[target_handle],
+        loc="lower right",
+        borderaxespad=0.0,
+        handletextpad=0.4,
+        frameon=False,
+        handlelength=3.0,
+    )
 
     for idx, (k, col) in enumerate(zip(track_indices, colors)):
-        ax2.plot(residual_traj[k], color=col, alpha=0.5, lw=1)
+        ax2.plot(residual_traj[k], color=col, alpha=0.7, lw=1)
 
     ax2.axhline(2 * eta, color="black", linestyle="--", alpha=0.5, lw=1, zorder=1)
     ax2.axhline(-2 * eta, color="black", linestyle="--", alpha=0.5, lw=1, zorder=1)
@@ -134,24 +154,16 @@ def make_figure(fig, data):
         zorder=0,
         label=r"$[-2\eta,2\eta]$",
     )
-    ax2.legend(
-        loc="lower right",
-        ncol=2,
-        # borderaxespad=-0.5,
-        columnspacing=0.8,
-        handlelength=1.5,
-        handletextpad=0.4,
-        frameon=False,
-        labelspacing=0.0,
-    )
 
-    ax2.set_title(r"Residuals")
+    ax2.set_title(r"Residuals over time")
     ax2.set_ylabel(r"$\mathrm{res}_k(t)$")
     ax2.set_xlabel("t")
     ax2.set_xlim(0, 200)
     ax2.set_ylim(-4 * eta, 4 * eta)
 
-    ax3.hist(deltas, bins=100, density=True, alpha=0.5)
+    ax3.hist(deltas, bins=50, density=True, alpha=0.8)
+
+    ax2.set_yticklabels(["", r"$-2\eta$", "0", r"$+2\eta$", ""])
 
     rect_uniform = patches.Rectangle(
         (-eta, -1 / (2 * eta)),
@@ -169,7 +181,10 @@ def make_figure(fig, data):
         [], [], color="black", linestyle="--", lw=1.5, label=r"Uniform $[-\eta, \eta]$"
     )
     ax3.set_ylim([0, 1.3 * (0.5 / eta)])
-    ax3.set_yticks([0, 0.25 / eta, 0.5 / eta])
+    ax3.set_xticks([-eta, 0, eta])
+    ax3.set_xticklabels([r"$-\eta$", "0", r"$\eta$"])
+    ax3.set_yticks([0, 0.5 / eta])
+    ax3.set_yticklabels([0, r"$\frac{1}{2\eta}$"])
     ax3.legend(
         handles=[theory_handle],
         loc="upper center",
@@ -194,6 +209,10 @@ def make_figure(fig, data):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    args = parser.parse_args()
+
     settings(plt)
     fig = plt.figure()
     data = postprocess(load_data())
@@ -201,4 +220,5 @@ if __name__ == "__main__":
 
     os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
     fig.savefig(OUT_FILE, bbox_inches="tight")
-    plt.show()
+    if not args.noshow:
+        plt.show()

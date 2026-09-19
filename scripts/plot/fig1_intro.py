@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -13,7 +14,7 @@ from package import plot_functions as pf
 OUT_FILE = "plot/optim_quad_vs_ce.pdf"
 
 COLORS = {"gd": "royalblue", "sd": "crimson", "adam": "darkorange"}
-LABELS = {"gd": "GD", "sd": "SD", "adam": "Adam"}
+LABELS = {"gd": "GD", "sd": "Sign", "adam": "Adam"}
 
 
 def load_data():
@@ -41,41 +42,56 @@ def make_figure(fig, data):
     axes = pf.make_subplots_on_figure(fig, nrows=1, ncols=2, sharey=True)
     ax1, ax2 = axes
 
+    SUBSAMPLE_LEN = 1
+
     for algo_key, color in COLORS.items():
         x = data["eval_steps"]
         ax1.plot(
-            x,
-            data[f"err_q_{algo_key}"],
+            x[::SUBSAMPLE_LEN],
+            data[f"err_q_{algo_key}"][::SUBSAMPLE_LEN],
             color=color,
             lw=2,
             label=LABELS[algo_key],
+            alpha=0.8,
         )
-        ax2.plot(x, data[f"err_ce_{algo_key}"], color=color, lw=2)
+        ax2.plot(
+            x[::SUBSAMPLE_LEN],
+            data[f"err_ce_{algo_key}"][::SUBSAMPLE_LEN],
+            color=color,
+            alpha=0.8,
+            lw=2,
+        )
 
     ax1.set_title("Quadratic (MSE)")
     ax2.set_title("Cross-Entropy")
 
     for ax in axes:
-        ax.set_yscale("log")
-        ax.set_xlabel("t")
+        # ax.set_yscale("log")
+        ax.set_xlabel("T")
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.grid(False)
 
-    ax1.set_ylabel("relative error")
+    ax1.set_ylabel("Relative error")
     ax2.tick_params(labelleft=False)
 
     legend_handles = [
         mlines.Line2D([0], [0], color=color, lw=2, label=LABELS[algo_key])
         for algo_key, color in COLORS.items()
     ]
-    ax1.legend(handles=legend_handles, loc="lower left", frameon=False, fontsize=7)
+    ax1.legend(handles=legend_handles, loc="best", frameon=False, fontsize=7)
+    ax1.set_ylim([0, 1])
+    ax2.set_ylim([0, 1])
 
     fig.tight_layout(pad=0.2)
     return fig
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    args = parser.parse_args()
+
     settings(plt)
     fig = plt.figure()
     data = postprocess(load_data())
@@ -83,4 +99,5 @@ if __name__ == "__main__":
 
     os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
     fig.savefig(OUT_FILE, bbox_inches="tight")
-    plt.show()
+    if not args.noshow:
+        plt.show()

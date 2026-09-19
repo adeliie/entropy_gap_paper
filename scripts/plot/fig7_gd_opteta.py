@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import matplotlib.pyplot as plt
@@ -30,10 +31,11 @@ def postprocess(data):
 
         exponent = int(np.log10(d)) if d in [10**i for i in range(1, 10)] else None
         label = rf" $d=10^{{{exponent}}}$" if exponent else rf"$d={d:,}$"
+        opt_eta = np.log(d) ** 2
         curves.append(
             {
                 "d": d,
-                "normalized_etas": etas / (np.log(d) ** 2),
+                "normalized_etas": etas / opt_eta,
                 "errors": errors,
                 "label": label,
             }
@@ -70,6 +72,7 @@ def make_figure(fig, data):
     ax.set_title("Grid search")
 
     ax.set_ylim([1e-2, 1e0])
+    ax.set_xlim([10**-1, 1e1])
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.legend(loc="best", frameon=False)
@@ -83,6 +86,10 @@ def make_figure(fig, data):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    args = parser.parse_args()
+
     settings(plt)
     fig = plt.figure()
     try:
@@ -94,4 +101,5 @@ if __name__ == "__main__":
 
     os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
     fig.savefig(OUT_FILE, bbox_inches="tight")
-    plt.show()
+    if not args.noshow:
+        plt.show()

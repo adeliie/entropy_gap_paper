@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -119,6 +120,10 @@ def make_figure(fig, data):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    args = parser.parse_args()
+
     settings(plt)
     fig = plt.figure()
     try:
@@ -130,4 +135,5 @@ if __name__ == "__main__":
 
     os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
     fig.savefig(OUT_FILE, bbox_inches="tight")
-    plt.show()
+    if not args.noshow:
+        plt.show()

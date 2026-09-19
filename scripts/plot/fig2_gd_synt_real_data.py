@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import matplotlib.pyplot as plt
@@ -104,7 +105,7 @@ def settings(plt):
 def make_figure(fig, data):
     ax1, ax2 = pf.make_subplots_on_figure(fig, nrows=1, ncols=2, sharey=True)
 
-    colors = cm.viridis(np.linspace(0, 0.8, len(data["all_ds"])))
+    colors = cm.viridis(np.linspace(0, 0.9, len(data["all_ds"])))
     color_by_d = {int(d): color for d, color in zip(data["all_ds"], colors)}
 
     (theory_line_1,) = ax1.plot(
@@ -195,6 +196,10 @@ def make_figure(fig, data):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    args = parser.parse_args()
+
     settings(plt)
     fig = plt.figure()
     try:
@@ -206,4 +211,5 @@ if __name__ == "__main__":
 
     os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
     fig.savefig(OUT_FILE, bbox_inches="tight")
-    plt.show()
+    if not args.noshow:
+        plt.show()

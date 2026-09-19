@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -93,10 +94,10 @@ def make_figure(fig, data):
         lines_d.append(line)
         labels_d.append(curve["label"])
 
-    ax1.set_ylim([1e-8, 1e0])
-
     ax1.set_xscale("log")
     ax1.set_yscale("log")
+    ax1.set_ylim([1e-7, 1e0])
+    ax1.set_yticks([1e-6, 1e-4, 1e-2, 1e0])
     ax1.set_xlabel(r"$\eta / \eta^*$", labelpad=0.0)
     ax1.set_ylabel("Relative error")
 
@@ -157,11 +158,15 @@ def make_figure(fig, data):
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
-    fig.tight_layout(pad=0.5)
+    fig.tight_layout(pad=0.2)
     return fig
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    args = parser.parse_args()
+
     settings(plt)
     fig = plt.figure()
     try:
@@ -173,4 +178,5 @@ if __name__ == "__main__":
 
     os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
     fig.savefig(OUT_FILE, bbox_inches="tight")
-    plt.show()
+    if not args.noshow:
+        plt.show()
