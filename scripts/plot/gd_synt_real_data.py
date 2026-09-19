@@ -5,125 +5,205 @@ import numpy as np
 from matplotlib import cm
 from matplotlib.lines import Line2D
 
-from package import (
-    DATA_FILE_GD_MATRIX,
-    DATA_FILE_GF,
-    DATA_FILE_REAL,
-)
-from package import algo_functions as f
-from package import (
-    plot_functions as pf,
-)
+from package import DATA_FILE_GD_MATRIX, DATA_FILE_GF, DATA_FILE_REAL
+from package import plot_functions as pf
+from package.plot_functions import update_style
 
-pf.set_font_sizes(plt)
+OUT_FILE = "plot/limit_synthetic_vs_real.pdf"
+ETA_NAME = "1_max_joint"
+SYNTHETIC_DS = [100, 1000, 10000]
 
 
-data_gd = np.load(DATA_FILE_GD_MATRIX, allow_pickle=True)
-ds_gd = data_gd["ds"]
-data_gf = np.load(DATA_FILE_GF, allow_pickle=True)
-ds_gf = data_gf["ds"]
+def load_data():
+    with np.load(DATA_FILE_GD_MATRIX, allow_pickle=True) as loaded:
+        gd = {key: loaded[key] for key in loaded.files}
+    with np.load(DATA_FILE_GF, allow_pickle=True) as loaded:
+        gf = {key: loaded[key] for key in loaded.files}
+    with np.load(DATA_FILE_REAL, allow_pickle=True) as loaded:
+        real = {key: loaded[key] for key in loaded.files}
+
+    real_marginals = {}
+    for d in real["ds"]:
+        freqs = np.load(os.path.join("freqs", f"token_freq_total_{d}.npy"))
+        real_marginals[int(d)] = freqs / np.sum(freqs)
+
+    return {
+        "gd": gd,
+        "gf": gf,
+        "real": real,
+        "real_marginals": real_marginals,
+    }
 
 
-file_path_real = DATA_FILE_REAL
-data_real = np.load(file_path_real, allow_pickle=True)
-ds_real = data_real["ds"]
-eta_name = "1_max_joint"
-
-
-all_ds = sorted(list(set(ds_gf).union(set(ds_real))))
-shared_colors = cm.viridis(np.linspace(0, 0.8, len(all_ds)))
-color_dict = {d: col for d, col in zip(all_ds, shared_colors)}
-
-fig, (ax1, ax2) = pf.make_subplots(1, 2, ratio=1.61)
-
-handles_ax1 = []
-labels_ax1 = []
-
-
-tau_theory = np.linspace(0, 2.05, 500)
-if hasattr(pf, "theory_global"):
-    R_th_glob = pf.theory_global(tau_theory)
-    (line_th1,) = ax1.plot(
-        tau_theory, R_th_glob, "--", color="red", linewidth=2.5, zorder=10
-    )
-    (line_th2,) = ax2.plot(
-        tau_theory, R_th_glob, "--", color="red", linewidth=2.5, zorder=10
-    )
-    handles_ax1.append(line_th1)
-    labels_ax1.append("Theory")
-
-
-for d in ds_gf:
-    if d in [100, 1000, 10000]:
-        col = color_dict[d]
-
-        tau_gf = data_gf[f"d_{d}_tau"]
-        exponent = int(np.log10(d)) if d in [10**i for i in range(1, 10)] else None
-        label_d = rf"$10^{{{exponent}}}$" if exponent else rf"${d:,}$"
-
-        pi_synth = f.generate_data(d).cpu().numpy()
-        has_gd = f"d_{d}_err" in data_gd
-
-        if has_gd:
-            tau_gd = data_gd[f"d_{d}_tau"]
-            err_gd = np.sum(data_gd[f"d_{d}_err"] * pi_synth, axis=1)
-            ax1.plot(tau_gd, err_gd, color=col, linestyle="-", linewidth=2.5, alpha=0.7)
-
-        dummy_line = Line2D([0], [0], color=col, linestyle="-", linewidth=2)
-        handles_ax1.append(dummy_line)
-        labels_ax1.append(label_d)
-
-ax1.legend(
-    handles_ax1,
-    labels_ax1,
-    loc="upper right",
-    borderaxespad=0.0,
-    frameon=False,
-    handletextpad=0.8,
-)
-
-
-handles_ax2 = [line_th2]
-labels_ax2 = ["Theory"]
-
-for d in ds_real:
-    col = color_dict[d]
-
+def dimension_label(d):
     exponent = int(np.log10(d)) if d in [10**i for i in range(1, 10)] else None
-    label_d = rf"$10^{{{exponent}}}$" if exponent else rf"${d:,}$"
+    return rf"$10^{{{exponent}}}$" if exponent else rf"${d:,}$"
 
-    tau_key = f"d_{d}_{eta_name}_tau"
-    err_key = f"d_{d}_{eta_name}_err"
 
-    if tau_key in data_real and err_key in data_real:
-        tau_real = data_real[tau_key]
-        err_matrix = data_real[err_key]
+def postprocess(data):
+    processed = dict(data)
+    gd = data["gd"]
+    gf = data["gf"]
+    real = data["real"]
 
-        freqs, _ = f.load_freqs(d)
-        pi_real = freqs / np.sum(freqs)
+    all_ds = sorted(set(gf["ds"]).union(real["ds"]))
 
-        err_global_real = np.nansum(err_matrix * pi_real, axis=1)
+    synthetic_curves = []
+    for d in gd["ds"]:
+        if d not in SYNTHETIC_DS:
+            continue
 
-        (line_real,) = ax2.plot(
-            tau_real, err_global_real, color=col, linestyle="-", linewidth=2.5
+        curve = {
+            "d": int(d),
+            "label": dimension_label(d),
+            "tau": None,
+            "errors": None,
+        }
+        if f"d_{d}_err" in gd:
+            ranks = np.arange(1, d + 1, dtype=np.float64)
+            pi = (1.0 / ranks) / np.sum(1.0 / ranks)
+            curve["tau"] = gd[f"d_{d}_tau"]
+            curve["errors"] = np.sum(gd[f"d_{d}_err"] * pi, axis=1)
+
+        synthetic_curves.append(curve)
+
+    real_curves = []
+    for d in real["ds"]:
+        tau_key = f"d_{d}_{ETA_NAME}_tau"
+        error_key = f"d_{d}_{ETA_NAME}_err"
+        if tau_key not in real or error_key not in real:
+            continue
+
+        pi = data["real_marginals"][int(d)]
+        real_curves.append(
+            {
+                "d": int(d),
+                "label": dimension_label(d),
+                "tau": real[tau_key],
+                "errors": np.nansum(real[error_key] * pi, axis=1),
+            }
         )
-        handles_ax2.append(line_real)
-        labels_ax2.append(label_d)
 
-ax1.set_title("Synthetic Data")
-ax2.set_title("Real Data")
+    theory_tau = np.linspace(0, 2.05, 500)
+    processed.update(
+        {
+            "all_ds": all_ds,
+            "synthetic_curves": synthetic_curves,
+            "real_curves": real_curves,
+            "theory_tau": theory_tau,
+            "theory_errors": pf.theory_global(theory_tau),
+        }
+    )
+    return processed
 
-for ax in [ax1, ax2]:
-    ax.set_xlabel(r"$\tau: \quad  t = d^{\tau}$")
-    ax.axhline(0, color="black", linewidth=0.8, zorder=1)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
 
-ax1.set_ylabel("relative error")
+def settings(plt):
+    update_style(plt, nrows=1, ncols=2, rel_width=1.0)
 
-plt.subplots_adjust(bottom=0.15, right=0.95, left=0.08, wspace=0.25)
 
-os.makedirs("plot", exist_ok=True)
-plt.savefig("plot/limit_synthetic_vs_real.pdf", bbox_inches="tight")
+def make_figure(fig, data):
+    ax1, ax2 = pf.make_subplots_on_figure(fig, nrows=1, ncols=2, sharey=True)
 
-plt.show()
+    colors = cm.viridis(np.linspace(0, 0.8, len(data["all_ds"])))
+    color_by_d = {int(d): color for d, color in zip(data["all_ds"], colors)}
+
+    (theory_line_1,) = ax1.plot(
+        data["theory_tau"],
+        data["theory_errors"],
+        "--",
+        color="red",
+        linewidth=2.5,
+        zorder=10,
+    )
+    (theory_line_2,) = ax2.plot(
+        data["theory_tau"],
+        data["theory_errors"],
+        "--",
+        color="red",
+        linewidth=2.5,
+        zorder=10,
+    )
+
+    synthetic_handles = [theory_line_1]
+    synthetic_labels = ["Theory"]
+    for curve in data["synthetic_curves"]:
+        color = color_by_d[curve["d"]]
+        if curve["tau"] is not None:
+            ax1.plot(
+                curve["tau"],
+                curve["errors"],
+                color=color,
+                linestyle="-",
+                linewidth=2.5,
+                alpha=0.7,
+            )
+
+        synthetic_handles.append(
+            Line2D([0], [0], color=color, linestyle="-", linewidth=2)
+        )
+        synthetic_labels.append(curve["label"])
+
+    ax1.legend(
+        synthetic_handles,
+        synthetic_labels,
+        loc="upper right",
+        borderaxespad=0.0,
+        frameon=False,
+        handletextpad=0.8,
+    )
+
+    real_handles = [theory_line_2]
+    real_labels = ["Theory"]
+    for curve in data["real_curves"]:
+        (line,) = ax2.plot(
+            curve["tau"],
+            curve["errors"],
+            color=color_by_d[curve["d"]],
+            linestyle="-",
+            linewidth=2.5,
+        )
+        real_handles.append(line)
+        real_labels.append(curve["label"])
+
+    ax2.legend(
+        real_handles,
+        real_labels,
+        loc="upper right",
+        borderaxespad=0.0,
+        frameon=False,
+        handletextpad=0.8,
+    )
+    for ax in [ax1, ax2]:
+        ax.set_xlim([0, 2])
+        ax.set_ylim([0, 1.05])
+        ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
+        ax.set_xticks([0, 0.5, 1, 1.5, 2])
+
+    ax1.set_title("Zipf's Law Frequencies")
+    ax2.set_title("Frequencies from Real Data")
+
+    for ax in [ax1, ax2]:
+        ax.set_xlabel(r"$\tau: \quad  t = d^{\tau}$")
+        ax.axhline(0, color="black", linewidth=0.8, zorder=1)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+    ax1.set_ylabel("Relative error")
+    # fig.subplots_adjust(bottom=0.15, right=0.95, left=0.08, wspace=0.25)
+    fig.tight_layout(pad=0.2)
+    return fig
+
+
+if __name__ == "__main__":
+    settings(plt)
+    fig = plt.figure()
+    try:
+        data = postprocess(load_data())
+    except FileNotFoundError as error:
+        print(f"Fichier introuvable : {error.filename}")
+        raise SystemExit(1)
+    make_figure(fig, data)
+
+    os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
+    fig.savefig(OUT_FILE, bbox_inches="tight")
+    plt.show()
