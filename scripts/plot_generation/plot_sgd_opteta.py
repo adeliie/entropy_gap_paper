@@ -55,7 +55,7 @@ if __name__ == "__main__":
     ax1.set_ylabel("excess loss")
     
    
-    leg_d = ax1.legend(lines_d, labels_d, loc='upper left', bbox_to_anchor=(0.5, 1.3), 
+    leg_d = ax1.legend(lines_d, labels_d, loc='upper left', bbox_to_anchor=(0.6, 1.1), 
                        frameon=False, handlelength=1.5, labelspacing=0.3)
     ax1.add_artist(leg_d) 
 

@@ -41,7 +41,6 @@ for ax_idx, (d, ax) in enumerate(zip(ds, axes)):
         
         ax.set_xlabel(r"$\tau : t = d^{\tau} $", labelpad=10)
         ax.set_title(rf"$d = {d:,}$")
-        ax.set_xticklabels([])
         if ax_idx == 0:
             ax.set_ylabel("relative error")
             
@@ -61,14 +60,14 @@ all_handles = color_handles + [spacer_handle] + style_handles
 
 fig.legend(handles=all_handles, 
            loc='upper center', 
-           bbox_to_anchor=(0.5, 0.15),  
+           bbox_to_anchor=(0.5, 0.02),  
            ncol=7,                
            frameon=False,
            columnspacing=0.3,    
            handletextpad=0.3, 
            handlelength=1.5)
 
-plt.tight_layout(rect=[0, 0.25, 0.98, 1])
+plt.tight_layout(rect=[0, 0.34, 0.98, 1], w_pad=2.0)
 
 os.makedirs("plot", exist_ok=True)
 out_file = "plot/sequential_wave_gd.pdf"

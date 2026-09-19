@@ -13,7 +13,7 @@ pf.set_font_sizes(plt)
 
 OUT_FILE = 'plot/optim_quad_vs_ce.pdf'
 
-COLORS = {'gd': 'royalblue', 'sd': 'crimson', 'adam': 'darkorange'}
+COLORS = {'gd': 'black', 'sd': 'blue', 'adam': 'red'}
 LABELS = {'gd': 'GD', 'sd': 'SD', 'adam': 'Adam'}
 
 fig, axes = pf.make_subplots(nrows=1, ncols=2, ratio=1.6)

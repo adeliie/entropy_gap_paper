@@ -73,9 +73,10 @@ if __name__ == "__main__":
         labels.append(rf"$w_{{{k+1}}}$")
         
     ax1.set_xlim(0, 200)
+    ax1.set_title(r"Weights and targets")
     ax1.set_xlabel("t")
-    ax1.set_ylabel(r"$w_k(t)$ and target")
-    ax1.legend(lines, labels, loc='upper right', bbox_to_anchor=(1.05, 1.35), frameon=False)
+    ax1.legend(lines, labels, loc='upper right', bbox_to_anchor=(0.98, 1.15),
+               frameon=False, labelspacing=0.05)
 
     for idx, (k, col) in enumerate(zip(track_indices, colors)):
         delta_k = W_traj[k] - target_traj[k]
@@ -92,7 +93,9 @@ if __name__ == "__main__":
     ax2.set_xlim(0, 200) 
     ax2.set_ylim(-4 * eta, 4 * eta) 
 
-    ax3.hist(deltas, bins=60, density=True, alpha=0.8, edgecolor='white') 
+    empirical_color = 'tab:blue'
+    ax3.hist(deltas, bins=60, density=True, color=empirical_color,
+             alpha=1.0, edgecolor='none')
    
     rect_uniform = patches.Rectangle((-eta, 0), 2*eta, 1/(2*eta), linewidth=1.5, edgecolor='black', 
                                      facecolor='none', linestyle='--', zorder=10)
@@ -100,7 +103,8 @@ if __name__ == "__main__":
     
    
     theory_handle = mlines.Line2D([], [], color='black', linestyle='--', lw=1.5, label=r"Uniform $[-\eta, \eta]$")
-    ax3.legend(handles=[theory_handle], loc='upper center', bbox_to_anchor=(0.5, 1.2), frameon=False)
+    ax3.legend(handles=[theory_handle], loc='upper center',
+               bbox_to_anchor=(0.5, 1.2), frameon=False)
 
     ax3.set_title(r"Distribution of $\delta_k$")
     ax3.set_xlabel(r"$\delta_k$")

@@ -24,15 +24,33 @@ colors_p1 = plt.cm.viridis(np.linspace(0.1, 0.9, len(ds_p1)))
 h_p1_dims, l_p1_dims = [], []
 
 for d, col in zip(ds_p1, colors_p1):
-    rel_errors = data_rel[f'rel_err_d{d}']
-    line, = ax1.plot(Ts_p1, rel_errors, alpha=0.8, color=col)
-    h_p1_dims.append(line)
-    l_p1_dims.append(rf'$10^{{{int(np.log10(d))}}}$')
+    
+        rel_errors = data_rel[f'rel_err_d{d}']*2/np.log(d)
+        line, = ax1.plot(Ts_p1, rel_errors, alpha=0.8, color=col)
+        h_p1_dims.append(line)
+        l_p1_dims.append(rf'$10^{{{int(np.log10(d))}}}$')
 
-line_th1, = ax1.plot(Ts_p1, 1.0 / Ts_p1, linestyle='--', color='crimson', linewidth=2.0)
+d_theory_p1 = ds_p1[-1]
+T_transition_p1 = np.log(d_theory_p1)/4  
+T_before_transition_p1 = np.geomspace(Ts_p1.min(), T_transition_p1, 200)
+T_after_transition_p1 = np.geomspace(T_transition_p1, Ts_p1.max(), 200)
+line_th1, = ax1.plot(
+    T_before_transition_p1,
+    1.0 / T_before_transition_p1,
+    linestyle='--',
+    color='crimson',
+    linewidth=2.5
+)
+line_th2, = ax1.plot(
+    T_after_transition_p1,
+    np.log(d_theory_p1) / (12.0 * T_after_transition_p1 ** 2),
+    linestyle='--',
+    color='crimson',
+    linewidth=2.5,
+)
 leg_dims = ax1.legend(h_p1_dims, l_p1_dims, loc='upper right', bbox_to_anchor=(1.2, 1.2), frameon=False, fontsize=8, handlelength=1.5, labelspacing=0.15)
 ax1.add_artist(leg_dims)
-ax1.legend([line_th1], [r'1/T'], loc='lower left', bbox_to_anchor=(0.05, 0.0), frameon=False, handlelength=1.5)
+ax1.legend([line_th1, line_th2], [r'1/T', r'$\log(d)/(12T^2)$'], loc='lower left', bbox_to_anchor=(-0.05, -0.05), frameon=False, handlelength=1.5)
 ax1.set_xscale('log')
 ax1.set_yscale('log')
 ax1.set_xlabel('T')
@@ -58,6 +76,7 @@ ax2.set_xscale('log')
 ax2.set_yscale('log')
 ax2.set_xlabel('T')
 ax2.set_title('Synthetic Data')
+ax2.legend(h_dim, l_dim, loc='upper right', bbox_to_anchor=(1.15, 1.15), frameon=False, handlelength=1, labelspacing=0.2)
 ax2.tick_params(axis='y', labelleft=False)
 
 colors_p3 = plt.cm.viridis(np.linspace(0.1, 0.9, len(ds_real)))

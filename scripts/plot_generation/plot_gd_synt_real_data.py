@@ -20,15 +20,17 @@ data_gf = np.load("data/data_gf_eta=logd^2.npz", allow_pickle=True)
 ds_gf = data_gf['ds']
 
 
-file_path_real = "data/real_data.npz"
+file_path_real = "data/real_data_bis.npz"
 data_real = np.load(file_path_real, allow_pickle=True)
 ds_real = data_real['ds']
 eta_name = '1_max_joint'
 
 
-all_ds = sorted(list(set(ds_gf).union(set(ds_real))))
-shared_colors = cm.viridis(np.linspace(0, 0.8, len(all_ds)))
-color_dict = {d: col for d, col in zip(all_ds, shared_colors)}
+ds_gf_to_plot = [d for d in ds_gf if d in [100, 1000, 10000]]
+colors_gf = cm.viridis(np.linspace(0, 1, len(ds_gf_to_plot)))
+colors_real = cm.viridis(np.linspace(0, 1, len(ds_real)))
+color_dict_gf = {d: col for d, col in zip(ds_gf_to_plot, colors_gf)}
+color_dict_real = {d: col for d, col in zip(ds_real, colors_real)}
 
 fig, (ax1, ax2) = pf.make_subplots(1, 2, ratio= 1.61)
 
@@ -47,7 +49,7 @@ if hasattr(pf, 'theory_global'):
 
 for d in ds_gf:
     if d in [100, 1000, 10000]:
-        col = color_dict[d]  
+        col = color_dict_gf[d]
         
         tau_gf = data_gf[f'd_{d}_tau']
         exponent = int(np.log10(d)) if d in [10**i for i in range(1, 10)] else None
@@ -59,7 +61,7 @@ for d in ds_gf:
         if has_gd:
             tau_gd = data_gd[f'd_{d}_tau']
             err_gd = np.sum(data_gd[f'd_{d}_err'] * pi_synth, axis=1)
-            ax1.plot(tau_gd, err_gd, color=col, linestyle='-', linewidth=2.5, alpha=0.7)
+            ax1.plot(tau_gd, err_gd, color=col, linestyle='-', linewidth=2.5)
 
         dummy_line = Line2D([0], [0], color=col, linestyle='-', linewidth=2)
         handles_ax1.append(dummy_line)
@@ -72,7 +74,7 @@ handles_ax2 = [line_th2]
 labels_ax2 = ["Theory"]
 
 for d in ds_real:
-    col = color_dict[d]  
+    col = color_dict_real[d]
     
     exponent = int(np.log10(d)) if d in [10**i for i in range(1, 10)] else None
     label_d = rf"$10^{{{exponent}}}$" if exponent else rf"${d:,}$"
@@ -108,6 +110,6 @@ ax1.set_ylabel("relative error")
 plt.subplots_adjust(bottom=0.15, right=0.95, left=0.08, wspace=0.25)
 
 os.makedirs("plot", exist_ok=True)
-plt.savefig("plot/limit_synthetic_vs_real.pdf", bbox_inches='tight')
+plt.savefig("plot/limit_synthetic_vs_real_bis.pdf", bbox_inches='tight')
 
 plt.show()
