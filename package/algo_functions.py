@@ -181,6 +181,71 @@ def loss_gap_real_global(pi_cond, pi_marginal, W):
     return global_kl
 
 
+def gradient_real_data(vocab_size, T, eta=0, N_checkpoints=100):
+    freqs, cond_freqs = load_freqs(vocab_size)
+    d = vocab_size
+    
+    compute_dtype = torch.float32
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    pi = torch.tensor(freqs, dtype=compute_dtype, device=device)
+    pi = pi / torch.sum(pi) 
+
+    pi_cond = torch.tensor(cond_freqs, dtype=compute_dtype, device=device).T
+    col_sums = torch.sum(pi_cond, dim=0, keepdim=True)
+    pi_cond = pi_cond / torch.clamp(col_sums, min=1e-30) 
+    
+    pi_joint = pi * pi_cond
+    if eta == 0:
+        eta = 1.0 / torch.max(pi_joint).item()
+
+    update_const_matrix = eta * pi * pi_cond
+    eta_pi_row = eta * pi.unsqueeze(0) 
+
+    W_T = torch.full((d, d), -np.log(d), dtype=compute_dtype, device=device)
+    U_T = update_const_matrix.t().contiguous()
+    eta_pi_col = eta_pi_row.t().contiguous()
+    
+    pi_cond_T = pi_cond.t().contiguous()
+    log_pi_cond_T = torch.log(pi_cond_T + 1e-30)
+    
+    def loss_gap_per_col_T(W_T_curr):
+        log_P_T = F.log_softmax(W_T_curr, dim=-1)
+        kl_terms = pi_cond_T * (log_pi_cond_T - log_P_T)
+        kl_terms = torch.nan_to_num(kl_terms, nan=0.0)
+        
+        return torch.sum(kl_terms, dim=-1)
+
+    init_err_per_col = loss_gap_per_col_T(torch.zeros_like(W_T))
+    safe_init_err = torch.clamp(init_err_per_col, min=1e-30)
+
+    raw = np.unique(np.round(np.geomspace(1, T, N_checkpoints)).astype(int))
+
+    saved_t = [0]
+    errors = [np.ones(d)]
+
+    def step(W, U, eta_pi_c):
+        P = F.softmax(W, dim=-1)
+        return W + U - (eta_pi_c * P)
+
+    prev_t = 0
+    with torch.no_grad():
+        for t in raw:
+            steps = t - prev_t
+            for _ in range(steps):
+                if hasattr(torch.compiler, "cudagraph_mark_step_begin"):
+                    torch.compiler.cudagraph_mark_step_begin()
+                W_T = step(W_T, U_T, eta_pi_col)
+
+            curr_err_per_col = loss_gap_per_col_T(W_T)
+            errors.append((curr_err_per_col / safe_init_err).cpu().numpy())
+            
+            saved_t.append(t)
+            prev_t = t
+
+    return np.array(saved_t, dtype=np.float64), np.array(errors)
+
+
 def sign_descent_real_data(vocab_size, T, eta):
     """Run sign descent on the real data distribution and return the normalized final error."""
     freqs, cond_freqs = load_freqs(vocab_size)
