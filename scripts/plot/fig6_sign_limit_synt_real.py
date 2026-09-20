@@ -180,7 +180,7 @@ def make_figure(fig, data):
     ax1.set_yscale("log")
     ax1.set_xlabel("T")
     ax1.set_ylabel("Relative Error")
-    ax1.set_title("Synthetic Data, Transition")
+    ax1.set_title("Transition")
     ax1.set_ylim([10**-4.5, 1.5 * 1e0])
     ax1.set_yticks([1e-4, 1e-2, 1e0])
 
@@ -203,7 +203,7 @@ def make_figure(fig, data):
     ax2.set_xscale("log")
     ax2.set_yscale("log")
     ax2.set_xlabel(r"$\tau = T^2 / \log(d)$")
-    ax2.set_title(r"Synthetic Data, $T \gg \log(d)$")
+    ax2.set_title(r"$T \gg \log(d)$")
     sgd_dimension_legend = ax2.legend(
         sgd_handles,
         sgd_labels,
@@ -275,14 +275,16 @@ def make_figure(fig, data):
         ax.spines["right"].set_visible(False)
         ax.grid(False)
 
-    fig.tight_layout(pad=0.2)
+    fig.tight_layout(pad=0.5)
 
     return fig
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    parser.add_argument(
+        "--noshow", action="store_true", help="Skip displaying the figure."
+    )
     args = parser.parse_args()
 
     settings(plt)

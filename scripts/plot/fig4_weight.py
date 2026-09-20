@@ -77,7 +77,7 @@ def postprocess(data):
 
 
 def settings(plt):
-    update_style(plt, nrows=1, ncols=3, rel_width=1.0, height_to_width_ratio=1.0)
+    update_style(plt, nrows=1, ncols=3, rel_width=1.0, height_to_width_ratio=0.85)
 
 
 def make_figure(fig, data):
@@ -112,7 +112,7 @@ def make_figure(fig, data):
     )
 
     ax1.set_title("Weights and targets")
-    ax1.set_ylim([-17, -3])
+    ax1.set_ylim([-18, -2])
     ax1.set_yticks([-15, -10, -5])
     ax1.set_xlim(0, 200)
     ax1.set_xlabel("t")
@@ -122,7 +122,7 @@ def make_figure(fig, data):
         labels,
         loc="upper right",
         ncol=2,
-        borderaxespad=0.0,
+        borderaxespad=-0.3,
         columnspacing=0.8,
         handlelength=1.5,
         handletextpad=0.4,
@@ -133,7 +133,7 @@ def make_figure(fig, data):
     ax1.legend(
         handles=[target_handle],
         loc="lower right",
-        borderaxespad=0.0,
+        borderaxespad=-0.3,
         handletextpad=0.4,
         frameon=False,
         handlelength=3.0,
@@ -204,13 +204,15 @@ def make_figure(fig, data):
         ax.spines["right"].set_visible(False)
         ax.tick_params(axis="both", which="major")
 
-    fig.tight_layout(pad=0.2)
+    fig.tight_layout(pad=0.5)
     return fig
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    parser.add_argument(
+        "--noshow", action="store_true", help="Skip displaying the figure."
+    )
     args = parser.parse_args()
 
     settings(plt)

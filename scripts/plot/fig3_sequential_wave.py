@@ -115,13 +115,15 @@ def make_figure(fig, data):
         handletextpad=0.5,
         handlelength=1.5,
     )
-    fig.tight_layout(pad=0.2, rect=(0, 0.1, 1, 1))
+    fig.tight_layout(pad=0.5, rect=(0, 0.1, 1, 1))
     return fig
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    parser.add_argument(
+        "--noshow", action="store_true", help="Skip displaying the figure."
+    )
     args = parser.parse_args()
 
     settings(plt)

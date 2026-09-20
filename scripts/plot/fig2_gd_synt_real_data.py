@@ -38,7 +38,8 @@ def load_data():
 
 def dimension_label(d):
     exponent = int(np.log10(d)) if d in [10**i for i in range(1, 10)] else None
-    return rf"$10^{{{exponent}}}$" if exponent else rf"${d:,}$"
+    exponent_str = str(exponent) if exponent == np.log10(d) else f"{np.log10(d):.1f}"
+    return rf"$10^{{{exponent_str}}}$"
 
 
 def postprocess(data):
@@ -191,13 +192,15 @@ def make_figure(fig, data):
 
     ax1.set_ylabel("Relative error")
     # fig.subplots_adjust(bottom=0.15, right=0.95, left=0.08, wspace=0.25)
-    fig.tight_layout(pad=0.2)
+    fig.tight_layout(pad=0.5)
     return fig
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    parser.add_argument(
+        "--noshow", action="store_true", help="Skip displaying the figure."
+    )
     args = parser.parse_args()
 
     settings(plt)

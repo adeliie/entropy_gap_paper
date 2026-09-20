@@ -35,7 +35,7 @@ def postprocess(data):
 
 
 def settings(plt):
-    update_style(plt, nrows=1, ncols=2, rel_width=1.0)
+    update_style(plt, nrows=1, ncols=2, rel_width=1.0, height_to_width_ratio=0.55)
 
 
 def make_figure(fig, data):
@@ -83,13 +83,15 @@ def make_figure(fig, data):
     ax1.set_ylim([0, 1])
     ax2.set_ylim([0, 1])
 
-    fig.tight_layout(pad=0.2)
+    fig.tight_layout(pad=0.5)
     return fig
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--noshow", action="store_true", help="Skip displaying the figure.")
+    parser.add_argument(
+        "--noshow", action="store_true", help="Skip displaying the figure."
+    )
     args = parser.parse_args()
 
     settings(plt)
