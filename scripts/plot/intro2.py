@@ -4,14 +4,13 @@ import sys
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
 
 from package.plot_functions import update_style
 
 from package import DATA_FILE_INTRO
 from package import plot_functions as pf
 
-OUT_FILE = "plot/optim_quad_vs_ce.pdf"
+OUT_FILE = "plot/optim_quad_vs_ce2.pdf"
 
 COLORS = {"gd": "royalblue", "sd": "crimson", "adam": "darkorange"}
 LABELS = {"gd": "GD", "sd": "SD", "adam": "Adam"}
@@ -35,55 +34,31 @@ def postprocess(data):
 
 
 def settings(plt):
-    update_style(plt, nrows=1, ncols=2, rel_width=1.0)
+    update_style(plt, nrows=1, ncols=2, rel_width=1.0, height_to_width_ratio=0.55)
 
 
 def make_figure(fig, data):
     axes = pf.make_subplots_on_figure(fig, nrows=1, ncols=2, sharey=True)
     ax1, ax2 = axes
 
-    def smooth(y, sigma=3):
-        ys = gaussian_filter1d(y, sigma=sigma)
-        ys[0] = y[0]  # preserve first value exactly
-        return ys
+    def moving_average(values):
+        averaged = np.asarray(values, dtype=np.float64).copy()
+        averaged[1:] = (averaged[:-1] + averaged[1:]) / 2
+        return averaged
 
     for algo_key, color in COLORS.items():
         x = data["eval_steps"]
         ax1.plot(
             x,
-            data[f"err_q_{algo_key}"],
-            ".-",
-            color=color,
-            lw=1,
-            markersize=2,
-            alpha=0.2,
-        )
-        ax1.plot(
-            x,
-            smooth(data[f"err_q_{algo_key}"]),
+            moving_average(data[f"err_q_{algo_key}"]),
             "-",
             color=color,
-            lw=2,
-            markersize=2,
-            label=LABELS[algo_key],
         )
         ax2.plot(
             x,
-            data[f"err_ce_{algo_key}"],
-            ".-",
-            color=color,
-            lw=1,
-            markersize=2,
-            alpha=0.2,
-        )
-        ax2.plot(
-            x,
-            smooth(data[f"err_ce_{algo_key}"]),
+            moving_average(data[f"err_ce_{algo_key}"]),
             "-",
             color=color,
-            lw=2,
-            markersize=2,
-            label=LABELS[algo_key],
         )
     ax1.set_title("Quadratic (MSE)")
     ax2.set_title("Cross-Entropy")

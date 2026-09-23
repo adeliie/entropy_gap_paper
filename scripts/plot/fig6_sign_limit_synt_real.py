@@ -216,7 +216,7 @@ def make_figure(fig, data):
     ax2.add_artist(sgd_dimension_legend)
     ax2.legend(
         [sgd_theory_line],
-        [r"$\frac{1}{\tau}$"],
+        [r"$\frac{1}{12\tau}$"],
         loc="upper right",
         borderaxespad=0.0,
         labelspacing=0.2,
@@ -256,7 +256,7 @@ def make_figure(fig, data):
     ax3.add_artist(real_dimension_legend)
     ax3.legend(
         [real_theory_line],
-        [r"$\frac{1}{\tau}$"],
+        [r"$\frac{1}{12\tau}$"],
         loc="upper right",
         borderaxespad=0.0,
         labelspacing=0.2,
