@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 _GOLDEN_RATIO = (1 + 5.0 ** (1 / 2)) / 2.0
 _INVERSE_GOLDEN_RATIO = _GOLDEN_RATIO - 1
 

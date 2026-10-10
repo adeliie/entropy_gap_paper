@@ -156,7 +156,7 @@ def make_figure(fig, data):
     )
 
     ax2.set_title(r"Residuals over time")
-    ax2.set_ylabel(r"$\mathrm{res}_k(t)$")
+    ax2.set_ylabel(r"$\delta_k(t)$")
     ax2.set_xlabel("t")
     ax2.set_xlim(0, 200)
     ax2.set_ylim(-4 * eta, 4 * eta)
