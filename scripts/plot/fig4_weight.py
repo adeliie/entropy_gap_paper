@@ -6,7 +6,6 @@ import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import torch.nn.functional as F
 from matplotlib import patches
 from torch.nn import functional as F
 from tqdm import tqdm
@@ -156,13 +155,14 @@ def make_figure(fig, data):
     )
 
     ax2.set_title(r"Residuals over time")
-    ax2.set_ylabel(r"$\delta_k(t)$")
+    ax2.set_ylabel(r"$\eta\delta_k(t)$")
     ax2.set_xlabel("t")
     ax2.set_xlim(0, 200)
     ax2.set_ylim(-4 * eta, 4 * eta)
 
     ax3.hist(deltas, bins=50, density=True, alpha=0.8)
 
+    ax2.set_yticks([-4 * eta, -2 * eta, 0, 2 * eta, 4 * eta])
     ax2.set_yticklabels(["", r"$-2\eta$", "0", r"$+2\eta$", ""])
 
     rect_uniform = patches.Rectangle(
@@ -178,13 +178,13 @@ def make_figure(fig, data):
     ax3.add_patch(rect_uniform)
 
     theory_handle = mlines.Line2D(
-        [], [], color="black", linestyle="--", lw=1.5, label=r"Uniform $[-\eta, \eta]$"
+        [], [], color="black", linestyle="--", lw=1.5, label=r"Uniform $[-1, 1]$"
     )
     ax3.set_ylim([0, 1.3 * (0.5 / eta)])
     ax3.set_xticks([-eta, 0, eta])
-    ax3.set_xticklabels([r"$-\eta$", "0", r"$\eta$"])
+    ax3.set_xticklabels([r"$-1$", "$0$", r"$1$"])
     ax3.set_yticks([0, 0.5 / eta])
-    ax3.set_yticklabels([0, r"$\frac{1}{2\eta}$"])
+    ax3.set_yticklabels([0, r"$\frac{1}{2}$"])
     ax3.legend(
         handles=[theory_handle],
         loc="upper center",
@@ -193,7 +193,7 @@ def make_figure(fig, data):
         labelspacing=0.0,
     )
 
-    ax3.set_title(r"Distribution of $\delta_k$")
+    ax3.set_title(r"Distribution of residuals")
     ax3.set_ylabel(r"Density")
     ax3.set_xlabel(r"$\delta_k$")
 
@@ -209,6 +209,7 @@ def make_figure(fig, data):
 
 
 if __name__ == "__main__":
+    print("?")
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--noshow", action="store_true", help="Skip displaying the figure."
